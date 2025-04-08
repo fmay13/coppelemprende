@@ -1,5 +1,26 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_core/firebase_core.dart';
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp();
+  runApp(const MyApp());
+}
+
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'Coppel Emprende',
+      home: const CoppelEmprendeHome(),
+      debugShowCheckedModeBanner: false,
+    );
+  }
+}
 
 class CoppelEmprendeHome extends StatelessWidget {
   const CoppelEmprendeHome({Key? key}) : super(key: key);
@@ -80,9 +101,7 @@ class CoppelEmprendeHome extends StatelessWidget {
                 leading: const Icon(Icons.history, color: Color(0xFF004481)),
                 title: Text("Mis Referencias", style: GoogleFonts.poppins()),
                 trailing: const Icon(Icons.arrow_forward_ios),
-                onTap: () {
-                  // TODO: Navegar al historial de registros
-                },
+                onTap: () {},
               ),
             ),
             const SizedBox(height: 12),
@@ -103,8 +122,35 @@ class CoppelEmprendeHome extends StatelessWidget {
   }
 }
 
-class RegisterFormScreen extends StatelessWidget {
+class RegisterFormScreen extends StatefulWidget {
   const RegisterFormScreen({super.key});
+
+  @override
+  State<RegisterFormScreen> createState() => _RegisterFormScreenState();
+}
+
+class _RegisterFormScreenState extends State<RegisterFormScreen> {
+  final _formKey = GlobalKey<FormState>();
+  final _businessNameController = TextEditingController();
+  final _ownerNameController = TextEditingController();
+  final _phoneController = TextEditingController();
+  final _businessTypeController = TextEditingController();
+
+  void _saveData() async {
+    if (_formKey.currentState!.validate()) {
+      await FirebaseFirestore.instance.collection('referencias').add({
+        'nombreNegocio': _businessNameController.text,
+        'nombrePropietario': _ownerNameController.text,
+        'telefono': _phoneController.text,
+        'tipoNegocio': _businessTypeController.text,
+        'timestamp': FieldValue.serverTimestamp(),
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Registro guardado correctamente")),
+      );
+      Navigator.pop(context);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -115,48 +161,57 @@ class RegisterFormScreen extends StatelessWidget {
       ),
       body: Padding(
         padding: const EdgeInsets.all(16),
-        child: ListView(
-          children: [
-            TextField(
-              decoration: InputDecoration(
-                labelText: "Nombre del negocio",
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+        child: Form(
+          key: _formKey,
+          child: ListView(
+            children: [
+              TextFormField(
+                controller: _businessNameController,
+                decoration: InputDecoration(
+                  labelText: "Nombre del negocio",
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                validator: (value) => value!.isEmpty ? "Campo obligatorio" : null,
               ),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              decoration: InputDecoration(
-                labelText: "Nombre del propietario",
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: _ownerNameController,
+                decoration: InputDecoration(
+                  labelText: "Nombre del propietario",
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                validator: (value) => value!.isEmpty ? "Campo obligatorio" : null,
               ),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              decoration: InputDecoration(
-                labelText: "Teléfono de contacto",
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: _phoneController,
+                decoration: InputDecoration(
+                  labelText: "Teléfono de contacto",
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                keyboardType: TextInputType.phone,
+                validator: (value) => value!.isEmpty ? "Campo obligatorio" : null,
               ),
-              keyboardType: TextInputType.phone,
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              decoration: InputDecoration(
-                labelText: "Tipo de negocio",
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: _businessTypeController,
+                decoration: InputDecoration(
+                  labelText: "Tipo de negocio",
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                validator: (value) => value!.isEmpty ? "Campo obligatorio" : null,
               ),
-            ),
-            const SizedBox(height: 24),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF004481),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              ),
-              onPressed: () {
-                // TODO: Guardar el registro
-              },
-              child: const Text("Guardar registro"),
-            )
-          ],
+              const SizedBox(height: 24),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF004481),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                onPressed: _saveData,
+                child: const Text("Guardar registro"),
+              )
+            ],
+          ),
         ),
       ),
     );
